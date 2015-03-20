@@ -1,8 +1,8 @@
 #include <stdio.h>
+#include <conio.h>
 
-int main(void)
+void main(void)
 {
 	printf("heheeh\n");
 	
-	return 0;
 }
