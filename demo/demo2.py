@@ -9,7 +9,18 @@ import urllib2
 import json
 
 def urlError():
-    print "+++urlopen error: Connection refused"
+    print "urlopen error: Connection refused"
+
+
+def print_json_data(rJson):
+    for key in rJson:
+        if key == "filename":       #用key值匹配内容
+            print "filename : %s" % rJson[key]
+        elif key == "content":
+            print "content : %s" % rJson[key]
+        else:
+            pass
+
 
 def http_post():
     try:
@@ -19,10 +30,9 @@ def http_post():
 
     filename ={"filename":"dic.txt", "content":["one", "two", "three"]}     #数据内容
     jdata = json.dumps(filename)        # 对数据进行JSON格式化编码
-    print type(jdata)#显示jdata类型
+
     req = urllib2.Request(url, jdata)       # 生成页面请求的完整数据
     req.add_header('Content-Type', 'application/json')
-    #print type(req)
 
     response = urllib2.urlopen(req)       # 发送页面请求
     return response.read()                    # 获取服务器返回的页面信息
@@ -39,20 +49,16 @@ def http_get_json():
 
     data = response.read()
 
-    print "type(data) : %s" %(type(data))
-    print "data = %s" %(data)
+    #print "type(data) : %s" %(type(data))
+    #print "data = %s" %(data)
 
     rJson = json.loads(data)        #将json数据解包
-    for key in rJson:
-        if key == "filename":       #用key值匹配内容
-            print "filename : %s" % rJson[key]
-        elif key == "content":
-            print "content : %s" % rJson[key]
-        else:
-            pass
+    print_json_data(rJson)
+
+
 def http_get_file():
     try:
-        url='http://172.17.6.223:8080/api/usr_info.txt'
+        url='http://172.17.6.223:8080/api/dic.txt'
     except URLError:
         urlError()
     req = urllib2.Request(url)
@@ -60,13 +66,21 @@ def http_get_file():
     response = urllib2.urlopen(req)
 
     data = response.read()
+    rJson = json.loads(data)
+    print_json_data(rJson)
 
-    print "data : %s" % data
 
-resp = http_post()
-print resp
-
-print http_get_json()
-print "_______________________________"
-print http_get_file()
+print "please input the number you choice!(1:post_json, 2:get_json, 3:get_file)"
+str = raw_input()
+if str == "1":
+    resp = http_post()
+    print resp
+elif str == "2":
+    resp = http_post()
+    #print resp
+    print http_get_json()
+elif str == "3":
+     print http_get_file()
+else:
+    print "Wrong Number"
 
