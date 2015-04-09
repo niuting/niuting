@@ -1,104 +1,128 @@
 #!/usr/bin/env python
 # encoding: utf-8
 
-from bottle import *
-from bottle import response, request
-import io
+#demo1.py
+
+from bottle import get, post, run, request
 import json
 import os
-import subprocess
-import sys
+import logging
 
-rJson = ""
+PATH = "/home/zhangbo/niuting/PYTHON/demo/Data"
+RJSON = ""
 
-def returnNum(str):
-    if str == "true" or str == "True":
-        return {'ok': True}
-    elif str == 'false' or str == 'False':
-        return {'ok': 'False'}
-    else:
-        print "Error Number"
+LOG_FILENAME = './LOG/log_demo.txt'
+logging.basicConfig(filename=LOG_FILENAME, filemode ='w', level=logging.DEBUG) #配置logging
+logging.info("this is the demoy1's log")   ##debug中的内容将被输出
+
+def get_cwd():
+    "检查是否存在该目录，不存在则创建"
+    logger = logging.getLogger("get_cwd")
+    try:
+        if not os.path.isdir(PATH):
+            os.mkdir(PATH)
+
+        os.chdir(PATH)
+        return_num('True')
+    except OSError:
+        logger.debug("get_cwd: OSError")
+        return_num('False')
 
 
-def write_file_os(filename, context, option):
-    if os.path.exists("./filename"):
-        os.system("rm %s" %filename)#判断文件是否存在，若存在则删除
-
-    os.system("touch %s" %filename)
-
-
-def write_file_sub(filename, context, option):
-    if os.path.exists("./filename"):
-        subprocess.Popen("rm %s" %filename, shell = True)#shell为真的话 unix下相当于args前面添加了 "/bin/sh“ ”-c”>
-
-    subprocess.Popen("touch %s" %filename, shell = True)#必须为无缓冲，否则写不进文件>
+def return_num(value):
+    "定义返回值函数"
+    if value.lower() == 'true' or value.lower() == 'false':
+        return {'ok' : value.capitalize()}
 
 
 def write_file(filename, context, option):#参数1：   要写入文件的内容 参数2：写入的方式
-    write_file_sub(filename, context, option)
-    #write_file_os(filename, context, option)
+    "将用户传入的json数据中的数据内容写入以json数据中的文件名命名的文件"
+    logger = logging.getLogger("write_file")
     try:
-        print "write: filename = %s" %filename
-        f = open(filename, option, 1024)
-        Str = json.dumps(context)
-        Str1 = str(Str)
-        f.write(Str1)   #去除关闭文件，统一在finally中关闭
-    except IOError, Environment:
-        returnNum("False")
-    finally:
+        logger.info("filename = %s" %filename)
+
+        path = PATH + "/" + filename
+        logger.info("path = %s" %path)
+
+        filepoint = open(path, option, 1024)
+        logger.info("context = %s" %context)
+
+        strdata = json.dumps(context, ensure_ascii=False).encode('utf-8')   #p43
+
+        logger.info("strdata = %s" %strdata)
+
+        filepoint.write(strdata)   #统一在finally中关闭
+
+        return_num('True')
+    except IOError:
+        return_num("False")
+    finally:    #finally语句会在return前执行
         try:
-            f.close()
+            filepoint.close()
         except IOError:
-            print "can't close file"
-            os.exit(1)
+            logger.debug("can't close file")
+            return_num('False')
 
 
 @post('/api')
-def post_file():
+def post_str():
+    "接收处理用户传入的json数据"
+    logger = logging.getLogger("post_file")
     try:
-        global rJson
-        request.accept="application/json"
+        request.accept = "application/json"
         try:
-            rJson = request.json
+            global RJSON
+            RJSON = request.json
+            logger.info("RJSON = %s" %RJSON)
         except ValueError:
-            print "Error : ValueError"
+            logger.info("Error : ValueError")
 
-        filename = rJson.get('filename')
-        context = rJson.get('content')
+        logger.info("type(RJSON) = %s" %type(RJSON))
 
-        write_file(filename, context, 'w+')
+        filename = RJSON.get('filename')
+        context = RJSON.get('content')
+
+        if get_cwd():
+            write_file(filename, context, 'w+') #将用户数据写入文件"w+"如果文件已存在则将其覆盖，不存在则重新创建
+        else:
+            return_num('False')
 
         print "filename : %s" %(json.dumps(filename))
-        print "context : %s" %(json.dumps(context))
+        print "context : %s" %(json.dumps(context, ensure_ascii=False))
 
     except ValueError:
-        returnNum('False')
-    returnNum('True')
+        return return_num('False')
+    return return_num('True')
 
 
 @get('/api/<filename>')
-def post_file(filename):
+def get_file(filename):
+    "从<filename>文件中获取数据，并返回给用户"
+    logger = logging.getLogger("get_file")
     try:
         context = open(filename).read()
+        print "post_file: context %s" %context
+        logger.info("context = %s" %context)
 
         data = {'filename': filename, 'content': context}
-        rJson = json.dumps(data)
+        data1 = json.dumps(data, ensure_ascii=False)
+        logger.info("get_file: data1 = %s" %data1)
 
-        return rJson
+        return data1
 
     except IOError:
-        returnNum("False")
+        return return_num("False")
 
 
 @get('/api/json')
-def post_str():
+def get_str():
+    "将json数据返回给用户"
     try:
-
-        return rJson
-
+        global RJSON
+        return RJSON
     except ValueError:
-        returnNum('False')
+        return return_num('False')
 
 
 if __name__ == "__main__":
-    run(host = '172.17.6.223', port = 8080)
+    run(host='172.17.6.223', port=8080)
